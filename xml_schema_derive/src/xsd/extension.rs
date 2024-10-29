@@ -210,6 +210,7 @@ mod tests {
             complex_type: None,
             simple_type: None,
             annotation: None,
+            recursive: false,
           },
           Element {
             name: "city".to_string(),
@@ -220,6 +221,7 @@ mod tests {
             complex_type: None,
             simple_type: None,
             annotation: None,
+            recursive: false,
           },
           Element {
             name: "country".to_string(),
@@ -230,6 +232,7 @@ mod tests {
             complex_type: None,
             simple_type: None,
             annotation: None,
+            recursive: false,
           },
         ],
       }],
