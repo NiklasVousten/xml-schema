@@ -42,8 +42,11 @@ impl Implementation for ComplexType {
     let mut binding = self.sequence.clone();
     let self_sequence = if let Some(sequence) = &mut binding {
       for element in &mut sequence.elements {
-        if element.kind.is_some() && self.name == element.kind.clone().unwrap() {
-          element.recursive = true;
+        if let Some(kind) = &element.kind {
+          let items: Vec<_> = kind.split(":").collect();
+          if self.name == *items.last().unwrap() {
+            element.recursive = true;
+          }
         }
       }
       Some(sequence)
@@ -150,7 +153,7 @@ mod tests {
   use std::str::FromStr;
 
   #[test]
-  fn recursive() {
+  fn recursive_simple() {
     use crate::xsd::element::Element;
 
     let st = ComplexType {
@@ -186,6 +189,51 @@ mod tests {
         pub struct Recursive {
           # [yaserde (rename = \"next\")]
           pub next : Box< xml_schema_types :: Recursive > ,
+        }
+      ",
+    )
+    .unwrap();
+
+    assert_eq!(implementation.to_string(), expected.to_string());
+  }
+
+  #[test]
+  fn recursive_option() {
+    use crate::xsd::element::Element;
+
+    let st = ComplexType {
+      name: "recursive".to_string(),
+      annotation: None,
+      attributes: vec![],
+      complex_content: None,
+      simple_content: None,
+      sequence: Some(Sequence {
+        elements: vec![Element {
+          name: "next".to_string(),
+          annotation: None,
+          kind: Some("recursive".to_string()),
+          simple_type: None,
+          complex_type: None,
+          refers: None,
+          min_occurences: Some(0),
+          max_occurences: None,
+          recursive: false, //Will be set to true by the complex type
+        }],
+      }),
+    };
+
+    let context =
+      XsdContext::new(r#"<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"></xs:schema>"#)
+        .unwrap();
+
+    let implementation = st.implement(&TokenStream::new(), &None, &context);
+
+    let expected = TokenStream::from_str(
+      "
+        # [derive (Clone , Debug , Default , PartialEq , yaserde_derive :: YaDeserialize , yaserde_derive :: YaSerialize)]
+        pub struct Recursive {
+          # [yaserde (rename = \"next\")]
+          pub next : Option< Box< xml_schema_types :: Recursive > > ,
         }
       ",
     )

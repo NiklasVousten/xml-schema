@@ -176,16 +176,16 @@ impl Element {
     .then_some(quote!(xml_schema_types::))
     .unwrap_or_default();
 
-    let rust_type = if multiple {
-      quote!(Vec<#module#rust_type>)
-    } else if self.min_occurences == Some(0) {
-      quote!(Option<#module#rust_type>)
+    let rust_type = if self.recursive {
+      quote!(Box<#module#rust_type>)
     } else {
       quote!(#module#rust_type)
     };
 
-    let rust_type = if self.recursive {
-      quote!(Box<#rust_type>)
+    let rust_type = if multiple {
+      quote!(Vec<#rust_type>)
+    } else if self.min_occurences == Some(0) {
+      quote!(Option<#rust_type>)
     } else {
       quote!(#rust_type)
     };
