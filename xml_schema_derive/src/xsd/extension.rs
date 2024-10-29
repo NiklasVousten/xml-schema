@@ -84,6 +84,12 @@ impl Extension {
       .map(|sequence| sequence.get_field_implementation(context, prefix))
       .collect();
 
+    let sequences: TokenStream = self
+      .sequences
+      .iter()
+      .map(|sequence| sequence.get_field_implementation(context, prefix))
+      .collect();
+
     quote!(
       pub base : #rust_type,
       #group_content
