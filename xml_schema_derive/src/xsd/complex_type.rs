@@ -38,8 +38,20 @@ impl Implementation for ComplexType {
       Span::call_site(),
     );
     log::info!("Generate sequence");
-    let sequence = self
-      .sequence
+
+    let mut binding = self.sequence.clone();
+    let self_sequence = if let Some(sequence) = &mut binding {
+      for element in &mut sequence.elements {
+        if element.kind.is_some() && self.name == element.kind.clone().unwrap() {
+          element.recursive = true;
+        }
+      }
+      Some(sequence)
+    } else {
+      None
+    };
+
+    let sequence = self_sequence
       .as_ref()
       .map(|sequence| sequence.implement(namespace_definition, prefix, context))
       .unwrap_or_default();
@@ -69,8 +81,7 @@ impl Implementation for ComplexType {
       .map(|attribute| attribute.implement(namespace_definition, prefix, context))
       .collect();
 
-    let sub_types_implementation = self
-      .sequence
+    let sub_types_implementation = self_sequence
       .as_ref()
       .map(|sequence| sequence.get_sub_types_implementation(context, namespace_definition, prefix))
       .unwrap_or_default();
@@ -130,5 +141,56 @@ impl ComplexType {
     }
 
     quote!(String)
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+  use std::str::FromStr;
+
+  #[test]
+  fn recursive() {
+    use crate::xsd::element::Element;
+
+    let st = ComplexType {
+      name: "recursive".to_string(),
+      annotation: None,
+      attributes: vec![],
+      complex_content: None,
+      simple_content: None,
+      sequence: Some(Sequence {
+        elements: vec![Element {
+          name: "next".to_string(),
+          annotation: None,
+          kind: Some("recursive".to_string()),
+          simple_type: None,
+          complex_type: None,
+          refers: None,
+          min_occurences: None,
+          max_occurences: None,
+          recursive: false, //Will be set to true by the complex type
+        }],
+      }),
+    };
+
+    let context =
+      XsdContext::new(r#"<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"></xs:schema>"#)
+        .unwrap();
+
+    let implementation = st.implement(&TokenStream::new(), &None, &context);
+
+    let expected = TokenStream::from_str(
+      "
+        # [derive (Clone , Debug , Default , PartialEq , yaserde_derive :: YaDeserialize , yaserde_derive :: YaSerialize)]
+        pub struct Recursive {
+          # [yaserde (rename = \"next\")]
+          pub next : Box< xml_schema_types :: Recursive > ,
+        }
+      ",
+    )
+    .unwrap();
+
+    assert_eq!(implementation.to_string(), expected.to_string());
   }
 }

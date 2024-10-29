@@ -25,6 +25,9 @@ pub struct Element {
   pub simple_type: Option<SimpleType>,
   #[yaserde(rename = "annotation")]
   pub annotation: Option<Annotation>,
+
+  #[yaserde(skip_serializing)]
+  pub recursive: bool,
 }
 
 impl Implementation for Element {
@@ -48,13 +51,23 @@ impl Implementation for Element {
 
       let extern_type = RustTypesMapping::get(context, kind);
 
-      (
-        quote!(
-          #[yaserde(#subtype_mode)]
-          pub content: xml_schema_types::#extern_type,
-        ),
-        quote!(),
-      )
+      if self.recursive {
+        (
+          quote!(
+            #[yaserde(#subtype_mode)]
+            pub content: Box< xml_schema_types::#extern_type >,
+          ),
+          quote!(),
+        )
+      } else {
+        (
+          quote!(
+            #[yaserde(#subtype_mode)]
+            pub content: xml_schema_types::#extern_type,
+          ),
+          quote!(),
+        )
+      }
     } else {
       let fields_definition = self
         .complex_type
@@ -171,6 +184,12 @@ impl Element {
       quote!(#module#rust_type)
     };
 
+    let rust_type = if self.recursive {
+      quote!(Box<#rust_type>)
+    } else {
+      quote!(#rust_type)
+    };
+
     let prefix_attribute = prefix
       .as_ref()
       .map(|prefix| quote!(, prefix=#prefix))
@@ -218,6 +237,7 @@ mod tests {
         attributes: vec![],
         documentation: vec!["Loudness measured in Decibels".to_string()],
       }),
+      recursive: false,
     };
 
     let context =
@@ -255,6 +275,7 @@ mod tests {
         attributes: vec![],
         documentation: vec!["Loudness measured in Decibels".to_string()],
       }),
+      recursive: false,
     };
 
     let context =
@@ -289,6 +310,7 @@ mod tests {
       complex_type: None,
       simple_type: None,
       annotation: None,
+      recursive: false,
     };
 
     let context =
@@ -314,6 +336,7 @@ mod tests {
       complex_type: None,
       simple_type: None,
       annotation: None,
+      recursive: false,
     };
 
     let implementation = element.get_field_implementation(&context, &None);
