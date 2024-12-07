@@ -1,6 +1,7 @@
 mod annotation;
 mod attribute;
 mod attribute_group;
+mod choice;
 mod complex_content;
 mod complex_type;
 mod element;
@@ -21,6 +22,7 @@ mod xsd_context;
 pub use annotation::*;
 pub use attribute::*;
 pub use attribute_group::*;
+pub use choice::*;
 pub use complex_content::*;
 pub use complex_type::*;
 pub use element::*;
