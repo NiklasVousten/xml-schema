@@ -1,4 +1,4 @@
-use crate::xsd::{attribute::Attribute, group::Group, sequence::Sequence};
+use crate::xsd::{attribute::Attribute, group::Group, sequence::Sequence, choice::Choice};
 
 #[derive(Clone, Default, Debug, PartialEq, YaDeserialize)]
 #[yaserde(
@@ -15,4 +15,6 @@ pub struct Extension {
   pub sequences: Vec<Sequence>,
   #[yaserde(rename = "group")]
   pub group: Option<Group>,
+  #[yaserde(rename = "choice")]
+  pub choice: Option<Choice>,
 }
